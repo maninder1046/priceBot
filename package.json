@@ -1,0 +1,31 @@
+{
+  "name": "price-drop-bot",
+  "version": "1.0.0",
+  "description": "Telegram Price Drop Tracker Bot for Amazon, Flipkart, and Myntra",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node test/utils.test.js && node test/scraperAndStore.test.js && node test/urlValidator.test.js && node test/rateLimiter.test.js && node test/trackerCommands.test.js && node test/database.test.js && node test/priceChecker.test.js && node test/providers.test.js && node test/schedulerPool.test.js && node test/callbacks.test.js"
+  },
+  "keywords": [
+    "telegram-bot",
+    "price-tracker",
+    "price-drop-alert",
+    "amazon-price-tracker",
+    "flipkart-price-tracker",
+    "grammy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "cheerio": "^1.2.0",
+    "dotenv": "^17.4.2",
+    "grammy": "^1.46.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

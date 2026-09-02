@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Environment and Secrets
+.env
+.env*.local
+*.env
+
+# Logs and Runtime Data
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Persistent Database and Storage
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# OS Specific
+.DS_Store
+Thumbs.db
