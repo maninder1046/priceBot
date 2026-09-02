@@ -1,0 +1,25 @@
+# fly.toml app configuration file for Fly.io
+# Reference: https://fly.io/docs/reference/configuration/
+
+app = "price-drop-bot"
+primary_region = "bom"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Mount persistent volume to /data so SQLite database persists across restarts
+[mounts]
+  source = "bot_data"
+  destination = "/data"
+
+[env]
+  NODE_ENV = "production"
+  DB_PATH = "/data/pricebot.db"
+  CHECK_INTERVAL_MINUTES = "30"
+  SCHEDULER_CONCURRENCY = "5"
+  SCHEDULER_MAX_RETRIES = "2"
+  MAX_TRACKED_PER_USER = "5"
+  URL_RATE_LIMIT_PER_MINUTE = "3"
+
+# No [http_service] is configured because this bot runs via Telegram Long-Polling.
+# This ensures Fly.io keeps the background bot active 24/7 without sleep.
