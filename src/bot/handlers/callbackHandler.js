@@ -128,6 +128,13 @@ export async function handleCallbackQuery(ctx, customStore) {
     }
 
     if (data.startsWith('cancel_fetch:')) {
+      const { activeFetchAbortMap } = await import('./urlHandler.js');
+      const trigger = activeFetchAbortMap.get(userId);
+      if (trigger) {
+        trigger();
+        activeFetchAbortMap.delete(userId);
+      }
+
       await ctx.answerCallbackQuery({ text: 'Fetching cancelled.' });
       await ctx.editMessageText('🛑 <i>Fetching cancelled by user.</i>', {
         parse_mode: 'HTML',

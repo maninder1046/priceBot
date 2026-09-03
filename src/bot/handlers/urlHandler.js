@@ -7,6 +7,9 @@ import { formatCurrency } from '../../utils/currency/currencyFormatter.js';
 import { escapeHtml } from '../../utils/sanitizers/textSanitizer.js';
 import { config } from '../../config/env.js';
 
+// Map of active user fetch requests -> cancellation trigger
+export const activeFetchAbortMap = new Map();
+
 /**
  * Extracts candidate URLs from message text or Telegram entities.
  * @param {import('grammy').Context} ctx 
@@ -106,6 +109,13 @@ export async function handleTextMessage(ctx) {
     reply_markup: cancelKeyboard
   });
 
+  // Setup instantaneous cancellation promise
+  let cancelReject = null;
+  const cancellationPromise = new Promise((_, reject) => {
+    cancelReject = () => reject(new Error('FETCH_CANCELLED_BY_USER'));
+  });
+  activeFetchAbortMap.set(userId, cancelReject);
+
   try {
     // Generous 60-second scraper timeout so headless browser has full time to complete
     const scrapePromise = scrapeProduct(validation.url, validation.store);
@@ -113,7 +123,13 @@ export async function handleTextMessage(ctx) {
       setTimeout(() => reject(new Error('Scraping timed out after 60 seconds')), 60000)
     );
 
-    const scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);
+    const scrapeResult = await Promise.race([scrapePromise, timeoutPromise, cancellationPromise]);
+
+    // If cancelled, stop immediately and do not overwrite the cancellation card
+    if (!activeFetchAbortMap.has(userId)) {
+      return;
+    }
+    activeFetchAbortMap.delete(userId);
 
     if (!scrapeResult.success) {
       console.error(`[Scraper Error] Failed scraping ${validation.store} URL:`, validation.url, scrapeResult.error);
@@ -191,6 +207,11 @@ export async function handleTextMessage(ctx) {
     );
 
   } catch (error) {
+    if (error.message === 'FETCH_CANCELLED_BY_USER') {
+      activeFetchAbortMap.delete(userId);
+      return;
+    }
+    activeFetchAbortMap.delete(userId);
     console.error('Error handling product URL:', error);
     await ctx.api.editMessageText(
       ctx.chat.id,
