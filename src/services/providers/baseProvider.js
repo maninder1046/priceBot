@@ -45,7 +45,18 @@ export class BaseProvider {
   parseHtml(html) {
     const $ = cheerio.load(html);
 
-    // 1. Try JSON-LD Schema.org extraction first
+    // 1. Try store-specific parser first (since Myntra/Flipkart embed rich state in scripts)
+    const specific = this.extractStoreSpecific($, html);
+    if (specific && specific.price && specific.name) {
+      return {
+        name: cleanTitle(specific.name),
+        price: specific.price,
+        currency: 'INR',
+        available: specific.available !== undefined ? specific.available : true
+      };
+    }
+
+    // 2. Try JSON-LD Schema.org extraction
     let schemaName = '';
     let schemaPrice = null;
 
@@ -64,19 +75,8 @@ export class BaseProvider {
       }
     });
 
-    if (schemaName && schemaPrice) {
-      return {
-        name: schemaName,
-        price: schemaPrice,
-        currency: 'INR',
-        available: true
-      };
-    }
-
-    // 2. Delegate to store-specific selector parser
-    const specific = this.extractStoreSpecific($, html);
-    const finalName = cleanTitle(specific.name || schemaName || $('meta[property="og:title"]').attr('content') || $('title').text());
-    const finalPrice = specific.price || schemaPrice || parsePriceToInteger($('meta[property="og:price:amount"]').attr('content'));
+    const finalName = cleanTitle(specific?.name || schemaName || $('meta[property="og:title"]').attr('content') || $('title').text());
+    const finalPrice = specific?.price || schemaPrice || parsePriceToInteger($('meta[property="og:price:amount"]').attr('content'));
 
     if (!finalPrice) {
       throw new Error(`Could not extract price from ${this.name} page. Product may be out of stock or requires login.`);
@@ -86,7 +86,7 @@ export class BaseProvider {
       name: finalName || `${this.name} Product`,
       price: finalPrice,
       currency: 'INR',
-      available: specific.available !== undefined ? specific.available : true
+      available: specific?.available !== undefined ? specific.available : true
     };
   }
 
