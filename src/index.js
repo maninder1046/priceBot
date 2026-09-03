@@ -32,10 +32,14 @@ bot.start({
 });
 
 // Graceful shutdown handling
-function handleShutdown(signal) {
+async function handleShutdown(signal) {
   console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
   priceScheduler.stop();
   bot.stop();
+  try {
+    const { closeBrowser } = await import('./services/providers/browserClient.js');
+    await closeBrowser();
+  } catch {}
   process.exit(0);
 }
 

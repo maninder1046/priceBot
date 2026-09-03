@@ -41,15 +41,20 @@ let cachedBrowser = null;
 let idleCloseTimer = null;
 const IDLE_TIMEOUT_MS = 3 * 60 * 1000; // Auto-close browser after 3 minutes of inactivity to save RAM
 
+export async function closeBrowser() {
+  if (idleCloseTimer) clearTimeout(idleCloseTimer);
+  if (cachedBrowser) {
+    try {
+      await cachedBrowser.close();
+    } catch {}
+    cachedBrowser = null;
+  }
+}
+
 function resetIdleTimer() {
   if (idleCloseTimer) clearTimeout(idleCloseTimer);
   idleCloseTimer = setTimeout(async () => {
-    if (cachedBrowser) {
-      try {
-        await cachedBrowser.close();
-      } catch {}
-      cachedBrowser = null;
-    }
+    await closeBrowser();
   }, IDLE_TIMEOUT_MS);
 }
 
