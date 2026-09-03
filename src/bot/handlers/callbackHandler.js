@@ -127,6 +127,15 @@ export async function handleCallbackQuery(ctx, customStore) {
       return;
     }
 
+    if (data.startsWith('cancel_fetch:')) {
+      await ctx.answerCallbackQuery({ text: 'Fetching cancelled.' });
+      await ctx.editMessageText('🛑 <i>Fetching cancelled by user.</i>', {
+        parse_mode: 'HTML',
+        reply_markup: new InlineKeyboard()
+      });
+      return;
+    }
+
     await ctx.answerCallbackQuery();
   } catch (err) {
     // If message is not modified, ignore

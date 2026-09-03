@@ -96,16 +96,20 @@ export async function handleTextMessage(ctx) {
     return;
   }
 
-  // Temporary status message while scraping
+  // Interactive Cancel button so user can cancel anytime by choice
+  const cancelKeyboard = new InlineKeyboard().text('❌ Cancel Fetching', `cancel_fetch:${userId}`);
+
+  // Temporary status message with Cancel button
   const statusMessage = await ctx.reply(`🔍 <i>Fetching product details from ${validation.store}...</i>`, {
-    parse_mode: 'HTML'
+    parse_mode: 'HTML',
+    reply_markup: cancelKeyboard
   });
 
   try {
-    // 25-second scraper timeout to allow headless browser rendering on cloud servers
+    // Generous 60-second scraper timeout so headless browser has full time to complete
     const scrapePromise = scrapeProduct(validation.url, validation.store);
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Scraping timed out after 25 seconds')), 25000)
+      setTimeout(() => reject(new Error('Scraping timed out after 60 seconds')), 60000)
     );
 
     const scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);
