@@ -77,9 +77,18 @@ export async function secureFetchHtml(url, options = {}) {
       ...options.headers
     };
 
-    // Add session cookies for INR preference on Amazon/Flipkart
+    // Add store-specific headers and session cookies to bypass datacenter firewall checks
     if (validation.store === 'Amazon') {
       headers['Cookie'] = 'i18n-prefs=INR; lc-acbin=en_IN; skin=noskin';
+      headers['Referer'] = 'https://www.amazon.in/';
+    } else if (validation.store === 'Flipkart') {
+      headers['Referer'] = 'https://www.flipkart.com/';
+      headers['Origin'] = 'https://www.flipkart.com';
+      headers['Sec-Fetch-Site'] = 'same-origin';
+    } else if (validation.store === 'Myntra') {
+      headers['Referer'] = 'https://www.myntra.com/';
+      headers['Origin'] = 'https://www.myntra.com';
+      headers['Sec-Fetch-Site'] = 'same-origin';
     }
 
     const response = await fetch(targetUrl, {

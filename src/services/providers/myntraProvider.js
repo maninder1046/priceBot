@@ -6,7 +6,33 @@ export class MyntraProvider extends BaseProvider {
     super('Myntra');
   }
 
-  extractStoreSpecific($) {
+  extractStoreSpecific($, html = '') {
+    // 1. Try parsing SSR embedded state (window.__myx)
+    if (html) {
+      const match = html.match(/window\.__myx\s*=\s*(\{.+?\})<\/script>/);
+      if (match) {
+        try {
+          const data = JSON.parse(match[1]);
+          const pdp = data.pdpData || {};
+          const title = pdp.name || pdp.title || '';
+          const rawPrice = pdp.price?.discounted || pdp.price?.mrp || pdp.price;
+          const parsedPrice = typeof rawPrice === 'number' ? rawPrice : parsePriceToInteger(rawPrice);
+          const isOutOfStock = pdp.outOfStock === true || pdp.isOutOfStock === true;
+
+          if (parsedPrice) {
+            return {
+              name: title,
+              price: parsedPrice,
+              available: !isOutOfStock
+            };
+          }
+        } catch {
+          // fallback to DOM selectors
+        }
+      }
+    }
+
+    // 2. DOM Selector fallback
     const name = $('h1.pdp-title').text() ||
                  $('h1.pdp-name').text();
 
