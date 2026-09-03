@@ -43,14 +43,24 @@ export async function resolveShortUrl(url) {
       }
     }
 
-    // If direct manual redirect was blocked with 403 on cloud IP (e.g. dl.flipkart.com), resolve locally via browser (0 credits)
+    // If direct manual redirect was blocked with 403 on cloud IP (e.g. dl.flipkart.com), resolve via ScraperAPI
     if (res.status === 403) {
-      console.log(`⚡ [Unshortener] Resolving short link locally for ${url} (0 credits)`);
-      const { unshortenUrlWithBrowser } = await import('./browserClient.js');
-      const resolved = await unshortenUrlWithBrowser(url);
-      const validation = validateProductUrl(resolved);
-      if (validation.isValid) {
-        return validation.url;
+      const { config } = await import('../../config/env.js');
+      if (config.scraperApiKey) {
+        const proxyResolveUrl = `https://api.scraperapi.com?api_key=${config.scraperApiKey}&url=${encodeURIComponent(url)}`;
+        const proxyRes = await fetch(proxyResolveUrl, { 
+          method: 'GET',
+          headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36' },
+          signal: AbortSignal.timeout(10000) 
+        });
+        
+        const finalUrl = proxyRes.headers.get('sa-final-url') || proxyRes.url;
+        if (finalUrl && finalUrl !== url && !finalUrl.includes('api.scraperapi.com')) {
+          const validation = validateProductUrl(finalUrl);
+          if (validation.isValid) {
+            return validation.url;
+          }
+        }
       }
     }
   } catch (err) {

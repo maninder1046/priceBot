@@ -83,55 +83,6 @@ export async function fetchHtmlWithBrowser(url) {
     const content = await page.content();
     return content;
   } finally {
-    try {
-      await browser.close();
-    } catch {
-      // ignore
-    }
-  }
-}
-
-/**
- * Fast zero-credit local redirect resolver
- * @param {string} url 
- * @returns {Promise<string>}
- */
-export async function unshortenUrlWithBrowser(url) {
-  const executablePath = findExecutablePath();
-  const browser = await puppeteer.launch({
-    headless: 'new',
-    executablePath,
-    pipe: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--no-first-run',
-      '--disable-extensions'
-    ]
-  });
-
-  try {
-    const page = await browser.newPage();
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-      if (['image', 'stylesheet', 'font', 'media'].includes(req.resourceType())) {
-        req.abort();
-      } else {
-        req.continue();
-      }
-    });
-
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 10000 });
-    return page.url();
-  } catch (err) {
-    return url;
-  } finally {
-    try {
-      await browser.close();
-    } catch {
-      // ignore
-    }
+    await browser.close().catch(() => {});
   }
 }
