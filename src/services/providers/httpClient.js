@@ -42,6 +42,23 @@ export async function resolveShortUrl(url) {
         return validation.url;
       }
     }
+
+    // If direct manual redirect was blocked with 403 on cloud IP (e.g. dl.flipkart.com), resolve via ScraperAPI
+    if (res.status === 403) {
+      const { config } = await import('../../config/env.js');
+      if (config.scraperApiKey) {
+        const proxyResolveUrl = `https://api.scraperapi.com?api_key=${config.scraperApiKey}&url=${encodeURIComponent(url)}&follow_redirect=false`;
+        const proxyRes = await fetch(proxyResolveUrl, { method: 'GET', redirect: 'manual', signal: AbortSignal.timeout(8000) });
+        const proxyLocation = proxyRes.headers.get('location') || proxyRes.headers.get('sa-final-url');
+        if (proxyLocation) {
+          const resolved = new URL(proxyLocation, url).toString();
+          const validation = validateProductUrl(resolved);
+          if (validation.isValid) {
+            return validation.url;
+          }
+        }
+      }
+    }
   } catch (err) {
     // If manual resolution fails, fall back to original url
   }
