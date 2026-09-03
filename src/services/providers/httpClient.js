@@ -65,8 +65,8 @@ export async function secureFetchHtml(url, options = {}) {
     throw new Error(`Invalid or disallowed URL: ${validation.error}`);
   }
 
-  // 3. Fast-path: Flipkart on cloud IPs routes via ScraperAPI (1.2s response time)
-  if (validation.store === 'Flipkart') {
+  // 3. Fast-path: Stores with Akamai/Cloudflare bot firewalls (Flipkart, Myntra) route via ScraperAPI
+  if (validation.store === 'Flipkart' || validation.store === 'Myntra') {
     const { config } = await import('../../config/env.js');
     if (config.scraperApiKey) {
       try {
