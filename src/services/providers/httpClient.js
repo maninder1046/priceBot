@@ -65,12 +65,11 @@ export async function secureFetchHtml(url, options = {}) {
     throw new Error(`Invalid or disallowed URL: ${validation.error}`);
   }
 
-  // 3. Fast-path: Stores with Akamai/Cloudflare bot firewalls (Flipkart, Myntra) route via ScraperAPI
-  if (validation.store === 'Flipkart' || validation.store === 'Myntra') {
+  // 3. Fast-path: Only Flipkart uses ScraperAPI (Amazon & Myntra are 100% direct and use 0 credits)
+  if (validation.store === 'Flipkart') {
     const { config } = await import('../../config/env.js');
     if (config.scraperApiKey) {
       try {
-        // Standard HTTP proxy: 1 request = exactly 1 API credit (render=false, standard IP)
         const proxyUrl = `https://api.scraperapi.com?api_key=${config.scraperApiKey}&url=${encodeURIComponent(targetUrl)}&keep_headers=true`;
         const res = await fetch(proxyUrl, { method: 'GET', signal: AbortSignal.timeout(15000) });
         if (res.ok) {
