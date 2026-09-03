@@ -1,4 +1,3 @@
-import { InlineKeyboard } from 'grammy';
 import { validateProductUrl, SUPPORTED_STORE_NAMES } from '../../services/validator/urlValidator.js';
 import { scrapeProduct } from '../../services/scraper/productScraper.js';
 import { trackerStore } from '../../services/database/trackerStore.js';
@@ -97,13 +96,9 @@ export async function handleTextMessage(ctx) {
     return;
   }
 
-  // Interactive Cancel button so user can cancel anytime by choice
-  const cancelKeyboard = new InlineKeyboard().text('❌ Cancel Fetching', `cancel_fetch:${userId}`);
-
-  // Temporary status message with Cancel button
+  // Temporary status message while scraping
   const statusMessage = await ctx.reply(`🔍 <i>Fetching product details from ${validation.store}...</i>`, {
-    parse_mode: 'HTML',
-    reply_markup: cancelKeyboard
+    parse_mode: 'HTML'
   });
 
   try {
