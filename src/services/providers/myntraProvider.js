@@ -9,13 +9,17 @@ export class MyntraProvider extends BaseProvider {
   extractStoreSpecific($, html = '') {
     // 1. Try parsing SSR embedded state (window.__myx)
     if (html) {
-      const match = html.match(/window\.__myx\s*=\s*(\{.+?\})<\/script>/);
-      if (match) {
+      const start = html.indexOf('window.__myx = {');
+      if (start !== -1) {
         try {
-          const data = JSON.parse(match[1]);
+          const jsonStart = start + 'window.__myx = '.length;
+          const scriptEnd = html.indexOf('</script>', jsonStart);
+          const rawJson = html.slice(jsonStart, scriptEnd).trim();
+          const cleanJson = rawJson.endsWith(';') ? rawJson.slice(0, -1) : rawJson;
+          const data = JSON.parse(cleanJson);
           const pdp = data.pdpData || {};
           const title = pdp.name || pdp.title || '';
-          const rawPrice = pdp.price?.discounted || pdp.price?.mrp || pdp.price;
+          const rawPrice = pdp.price?.discounted || pdp.price?.mrp || pdp.mrp;
           const parsedPrice = typeof rawPrice === 'number' ? rawPrice : parsePriceToInteger(rawPrice);
           const isOutOfStock = pdp.outOfStock === true || pdp.isOutOfStock === true;
 
