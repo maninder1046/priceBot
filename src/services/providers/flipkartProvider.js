@@ -63,7 +63,7 @@ export class FlipkartProvider extends BaseProvider {
                              rawJson.toLowerCase().includes('currently out of stock') ||
                              rawJson.toLowerCase().includes('sold out');
 
-        if (price > 0 || isOutOfStock) {
+        if (price > 0 || isOutOfStock || name) {
           console.log(`⚡ [Pipeline: Flipkart Rome API] Successfully fetched "${name}" (₹${price}) via 2.rome.api JSON gateway in 0.2s (0 credits)`);
           return {
             name: name || 'Flipkart Product',
