@@ -101,11 +101,11 @@ export async function fetchHtmlWithBrowser(url) {
   try {
     await page.setViewport({ width: 1280, height: 800 });
     
-    // Block heavy assets (images, stylesheets, fonts, media) to make page load 5x faster
+    // Block heavy media and fonts (do NOT abort stylesheets or scripts as it causes Chromium lifecycle to hang)
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const resourceType = req.resourceType();
-      if (['image', 'media', 'font', 'stylesheet'].includes(resourceType)) {
+      if (['image', 'media', 'font'].includes(resourceType)) {
         req.abort();
       } else {
         req.continue();
