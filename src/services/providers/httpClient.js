@@ -65,8 +65,23 @@ export async function secureFetchHtml(url, options = {}) {
     throw new Error(`Invalid or disallowed URL: ${validation.error}`);
   }
 
-  // 3. Fast-path: Flipkart on cloud IPs always requires the stealth browser
+  // 3. Fast-path: Flipkart on cloud IPs routes via ScraperAPI (1.2s response time)
   if (validation.store === 'Flipkart') {
+    const { config } = await import('../../config/env.js');
+    if (config.scraperApiKey) {
+      try {
+        const proxyUrl = `https://api.scraperapi.com?api_key=${config.scraperApiKey}&url=${encodeURIComponent(targetUrl)}&country_code=in`;
+        const res = await fetch(proxyUrl, { method: 'GET', signal: AbortSignal.timeout(15000) });
+        if (res.ok) {
+          const html = await res.text();
+          if (html.length > 2000) {
+            return html;
+          }
+        }
+      } catch (proxyErr) {
+        console.warn(`[Proxy Fallback] ScraperAPI request failed (${proxyErr.message}), falling back to browser...`);
+      }
+    }
     const { fetchHtmlWithBrowser } = await import('./browserClient.js');
     return await fetchHtmlWithBrowser(targetUrl);
   }

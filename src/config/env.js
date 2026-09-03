@@ -11,6 +11,7 @@ const URL_RATE_LIMIT_PER_MINUTE = parseInt(process.env.URL_RATE_LIMIT_PER_MINUTE
 const DB_PATH = process.env.DB_PATH || path.join(process.cwd(), 'data', 'pricebot.db');
 const SCHEDULER_CONCURRENCY = parseInt(process.env.SCHEDULER_CONCURRENCY || '5', 10);
 const SCHEDULER_MAX_RETRIES = parseInt(process.env.SCHEDULER_MAX_RETRIES || '2', 10);
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || '';
 
 if (!BOT_TOKEN || BOT_TOKEN.trim() === '' || BOT_TOKEN === 'your_telegram_bot_token_here') {
   console.error('\n❌ [CONFIG ERROR] BOT_TOKEN is missing or invalid in your .env file.');
@@ -26,5 +27,6 @@ export const config = {
   urlRateLimitPerMinute: isNaN(URL_RATE_LIMIT_PER_MINUTE) ? 3 : URL_RATE_LIMIT_PER_MINUTE,
   dbPath: DB_PATH,
   schedulerConcurrency: isNaN(SCHEDULER_CONCURRENCY) ? 5 : SCHEDULER_CONCURRENCY,
-  schedulerMaxRetries: isNaN(SCHEDULER_MAX_RETRIES) ? 2 : SCHEDULER_MAX_RETRIES
+  schedulerMaxRetries: isNaN(SCHEDULER_MAX_RETRIES) ? 2 : SCHEDULER_MAX_RETRIES,
+  scraperApiKey: SCRAPER_API_KEY.trim()
 };
