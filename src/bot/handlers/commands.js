@@ -46,7 +46,7 @@ export async function handleHelp(ctx) {
     `• Maximum <b>${config.maxTrackedPerUser}</b> tracked products per user.`,
     `• Maximum <b>${config.urlRateLimitPerMinute}</b> URL submissions per minute.`,
     ``,
-    `<i>Simply paste a product link from Amazon, Flipkart, Myntra, Meesho, or Blinkit anytime!</i>`
+    `<i>Simply paste a product link from ${SUPPORTED_STORE_NAMES} anytime!</i>`
   ].join('\n');
 
   await ctx.reply(helpMessage, { parse_mode: 'HTML' });

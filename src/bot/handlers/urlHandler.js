@@ -105,10 +105,17 @@ export async function handleTextMessage(ctx) {
     const scrapeResult = await scrapeProduct(validation.url, validation.store);
 
     if (!scrapeResult.success) {
+      console.error(`[Scraper Error] Failed scraping ${validation.store} URL:`, validation.url, scrapeResult.error);
+      
+      let friendlyError = 'Please make sure the link points directly to a valid product page.';
+      if (scrapeResult.error?.toLowerCase().includes('timed out') || scrapeResult.error?.toLowerCase().includes('timeout')) {
+        friendlyError = 'The store took too long to respond. Please try sending the link again in a few moments.';
+      }
+
       await ctx.api.editMessageText(
         ctx.chat.id,
         statusMessage.message_id,
-        `⚠️ <b>Could not fetch product price</b>\n\n${escapeHtml(scrapeResult.error || 'Please make sure the link points directly to an in-stock product page.')}`,
+        `⚠️ <b>Could not fetch product price</b>\n\n${friendlyError}`,
         { parse_mode: 'HTML' }
       );
       return;
@@ -134,18 +141,36 @@ export async function handleTextMessage(ctx) {
     }
 
     const tracker = storeResult.tracker;
+    const isOutOfStock = !scrapeResult.available || tracker.initialPrice === 0;
+
+    if (isOutOfStock) {
+      console.log(`🔔 [Tracker Added] User ${userId} started Back-in-Stock tracking: "${tracker.title}" on ${tracker.platform}`);
+    } else {
+      console.log(`💰 [Tracker Added] User ${userId} started Price-Drop tracking: "${tracker.title}" (${formatCurrency(tracker.initialPrice)}) on ${tracker.platform}`);
+    }
 
     // Formatted display
-    const responseText = [
-      `📦 <b>Product detected</b>`,
-      ``,
-      `<b>${escapeHtml(tracker.title)}</b>`,
-      ``,
-      `💰 Current Price: <b>${formatCurrency(tracker.initialPrice)}</b>`,
-      ``,
-      `🔍 <i>Price drop tracking started.</i>`,
-      `You will be notified if the price drops.`
-    ].join('\n');
+    const responseText = isOutOfStock
+      ? [
+          `📦 <b>Product detected (Out of Stock)</b>`,
+          ``,
+          `<b>${escapeHtml(tracker.title)}</b>`,
+          ``,
+          `⏳ Status: <b>Currently Sold Out / Unavailable</b>`,
+          ``,
+          `🔔 <i>Back-in-stock tracking started!</i>`,
+          `We will notify you immediately once it becomes available to buy.`
+        ].join('\n')
+      : [
+          `📦 <b>Product detected</b>`,
+          ``,
+          `<b>${escapeHtml(tracker.title)}</b>`,
+          ``,
+          `💰 Current Price: <b>${formatCurrency(tracker.initialPrice)}</b>`,
+          ``,
+          `🔍 <i>Price drop tracking started.</i>`,
+          `You will be notified if the price drops.`
+        ].join('\n');
 
     await ctx.api.editMessageText(
       ctx.chat.id,

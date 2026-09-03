@@ -16,18 +16,11 @@ export async function scrapeProduct(url, platform) {
   try {
     const product = await priceService.getProduct(url, platform);
 
-    if (!product.available) {
-      return {
-        success: false,
-        title: product.name,
-        error: 'Product is currently out of stock or unavailable on the store.'
-      };
-    }
-
     return {
       success: true,
       title: product.name,
-      price: product.price
+      price: product.price,
+      available: product.available
     };
   } catch (err) {
     return {

@@ -45,18 +45,7 @@ export class BaseProvider {
   parseHtml(html) {
     const $ = cheerio.load(html);
 
-    // 1. Try store-specific parser first (since Myntra/Flipkart embed rich state in scripts)
-    const specific = this.extractStoreSpecific($, html);
-    if (specific && specific.price && specific.name) {
-      return {
-        name: cleanTitle(specific.name),
-        price: specific.price,
-        currency: 'INR',
-        available: specific.available !== undefined ? specific.available : true
-      };
-    }
-
-    // 2. Try JSON-LD Schema.org extraction
+    // 1. Try JSON-LD Schema.org extraction first (Standard E-Commerce Product Schema)
     let schemaName = '';
     let schemaPrice = null;
 
@@ -75,8 +64,40 @@ export class BaseProvider {
       }
     });
 
+    if (schemaName && schemaPrice) {
+      return {
+        name: cleanTitle(schemaName),
+        price: schemaPrice,
+        currency: 'INR',
+        available: true
+      };
+    }
+
+    // 2. Delegate to store-specific parser (for Myntra/Flipkart script/SSR states & DOM selectors)
+    const specific = this.extractStoreSpecific($, html);
+    if (specific && specific.price && specific.name) {
+      return {
+        name: cleanTitle(specific.name),
+        price: specific.price,
+        currency: 'INR',
+        available: specific.available !== undefined ? specific.available : true
+      };
+    }
+
     const finalName = cleanTitle(specific?.name || schemaName || $('meta[property="og:title"]').attr('content') || $('title').text());
     const finalPrice = specific?.price || schemaPrice || parsePriceToInteger($('meta[property="og:price:amount"]').attr('content'));
+
+    const isAvailable = specific?.available !== false && (finalPrice !== null && finalPrice > 0);
+
+    if (!finalPrice && !isAvailable) {
+      // Product detected but currently Out of Stock
+      return {
+        name: finalName || `${this.name} Product`,
+        price: 0,
+        currency: 'INR',
+        available: false
+      };
+    }
 
     if (!finalPrice) {
       throw new Error(`Could not extract price from ${this.name} page. Product may be out of stock or requires login.`);
@@ -86,7 +107,7 @@ export class BaseProvider {
       name: finalName || `${this.name} Product`,
       price: finalPrice,
       currency: 'INR',
-      available: specific?.available !== undefined ? specific.available : true
+      available: isAvailable
     };
   }
 

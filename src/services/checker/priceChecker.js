@@ -63,14 +63,44 @@ export async function checkProductPrices(bot, customPriceFetcher = null, store =
     const subscribers = store.getProductSubscribers(product.id);
 
     for (const sub of subscribers) {
-      if (currentPrice < sub.initialPrice) {
-        const savings = sub.initialPrice - currentPrice;
-
-        // 4. Soft-disable tracking (active = 0)
+      // Case A: Back-In-Stock alert (product was tracked while out-of-stock, initialPrice === 0)
+      if (sub.initialPrice === 0 && currentPrice > 0) {
         store.deactivateTracking(sub.tracking_id);
         alertsSent++;
 
-        // 5. Broadcast notification to Telegram user
+        if (bot && bot.api) {
+          try {
+            const backInStockText = [
+              `🟢 <b>BACK IN STOCK!</b>`,
+              ``,
+              `📦 <b>${escapeHtml(sub.title)}</b>`,
+              ``,
+              `💰 Now Available at: <b>${formatCurrency(currentPrice)}</b>`,
+              ``,
+              `⚡ <i>Hurry up before it sells out again!</i>`,
+              ``,
+              `🛒 <a href="${sub.productUrl}">Buy Now</a>`
+            ].join('\n');
+
+            await bot.api.sendMessage(sub.telegramId, backInStockText, {
+              parse_mode: 'HTML',
+              link_preview_options: { is_disabled: false }
+            });
+            console.log(`🟢 [Back-in-Stock Alert Sent] Delivered alert for "${sub.title}" (Now ${formatCurrency(currentPrice)}) to User ${sub.telegramId}`);
+          } catch (err) {
+            console.error(`Failed to send back-in-stock alert to user ${sub.telegramId}:`, err.message);
+          }
+        }
+      }
+      // Case B: Price Drop alert (initialPrice > currentPrice)
+      else if (sub.initialPrice > 0 && currentPrice < sub.initialPrice) {
+        const savings = sub.initialPrice - currentPrice;
+
+        // Soft-disable tracking (active = 0)
+        store.deactivateTracking(sub.tracking_id);
+        alertsSent++;
+
+        // Broadcast notification to Telegram user
         if (bot && bot.api) {
           try {
             const alertText = [
@@ -90,6 +120,7 @@ export async function checkProductPrices(bot, customPriceFetcher = null, store =
               parse_mode: 'HTML',
               link_preview_options: { is_disabled: false }
             });
+            console.log(`🔔 [Price Drop Alert Sent] Delivered alert for "${sub.title}" (Dropped from ${formatCurrency(sub.initialPrice)} to ${formatCurrency(currentPrice)}, Saved ${formatCurrency(savings)}) to User ${sub.telegramId}`);
           } catch (err) {
             console.error(`Failed to send price drop alert to user ${sub.telegramId}:`, err.message);
           }

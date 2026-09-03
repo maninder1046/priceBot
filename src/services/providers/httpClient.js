@@ -65,7 +65,13 @@ export async function secureFetchHtml(url, options = {}) {
     throw new Error(`Invalid or disallowed URL: ${validation.error}`);
   }
 
-  // 3. Request throttling jitter
+  // 3. Fast-path: Flipkart on cloud IPs always requires the stealth browser
+  if (validation.store === 'Flipkart') {
+    const { fetchHtmlWithBrowser } = await import('./browserClient.js');
+    return await fetchHtmlWithBrowser(targetUrl);
+  }
+
+  // 4. Request throttling jitter
   await jitterDelay(300, 800);
 
   const controller = new AbortController();

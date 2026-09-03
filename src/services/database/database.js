@@ -88,12 +88,16 @@ export class DatabaseService {
 
   findOrCreateProduct({ normalizedUrl, platform, name, initialPrice }) {
     const existing = this.db.prepare('SELECT * FROM products WHERE normalized_url = ?').get(normalizedUrl);
+    const priceInt = Math.round(initialPrice || 0);
+
     if (existing) {
+      if (existing.last_price === 0 && priceInt > 0) {
+        this.db.prepare('UPDATE products SET last_price = ?, name = ? WHERE id = ?').run(priceInt, name || existing.name, existing.id);
+      }
       return existing;
     }
 
     const now = Date.now();
-    const priceInt = Math.round(initialPrice);
     const result = this.db.prepare(`
       INSERT INTO products (normalized_url, platform, name, initial_price, last_price, created_at)
       VALUES (?, ?, ?, ?, ?, ?)

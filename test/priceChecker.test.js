@@ -93,9 +93,25 @@ assert(sentMessages.length === 1, 'Scenario D (₹8,500): User 2 alert sent');
 assert(sentMessages[0].chatId === user2TelegramId, 'Scenario D: Alert delivered to User 2');
 assert(trackerStore.getTrackersByUser(user2TelegramId).length === 0, 'Scenario D: User 2 tracking auto-disabled');
 
+// Scenario E: Back in Stock alert test
+const outOfStockUser = 999111222;
+trackerStore.addTracker({
+  userId: outOfStockUser,
+  productUrl: 'https://www.amazon.in/dp/B0OOS123',
+  platform: 'Amazon',
+  title: 'Sold Out Item',
+  initialPrice: 0
+});
+
+sentMessages.length = 0;
+await checkProductPrices(mockBot, () => 4999, trackerStore);
+assert(sentMessages.length === 1, 'Scenario E: Back-in-stock alert sent when item returns with price');
+assert(sentMessages[0].text.includes('BACK IN STOCK!'), 'Scenario E: Alert message contains BACK IN STOCK!');
+assert(trackerStore.getTrackersByUser(outOfStockUser).length === 0, 'Scenario E: Tracking deactivated after back-in-stock alert');
+
 // All records remain preserved in SQLite history
 const totalDbRows = testDbService.db.prepare('SELECT COUNT(*) as count FROM tracking').get();
-assert(totalDbRows.count === 2, 'History Preserved: All tracking rows remain in SQLite database');
+assert(totalDbRows.count === 3, 'History Preserved: All tracking rows remain in SQLite database');
 
 console.log(`\n========================================`);
 console.log(`Summary: ${passed} Passed, ${failed} Failed`);

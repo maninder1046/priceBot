@@ -33,9 +33,13 @@ export function buildTrackingListPayload(userId, customStore = defaultTrackerSto
   const keyboard = new InlineKeyboard();
 
   activeTrackers.forEach((tracker, index) => {
+    const priceDisplay = tracker.initialPrice > 0
+      ? formatCurrency(tracker.initialPrice)
+      : '⏳ <i>Out of Stock (Alert when available)</i>';
+
     lines.push(
       `<b>${index + 1}. ${escapeHtml(tracker.title)}</b>`,
-      `   Initial: <b>${formatCurrency(tracker.initialPrice)}</b>`,
+      `   Price: <b>${priceDisplay}</b>`,
       `   Platform: <i>${escapeHtml(tracker.platform.toUpperCase())}</i>`,
       ``
     );

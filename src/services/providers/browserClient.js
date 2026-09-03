@@ -8,12 +8,11 @@ puppeteer.use(StealthPlugin());
  * Common Chromium/Chrome executable paths across Linux and Windows
  */
 const POSSIBLE_PATHS = [
-  // Linux (Ubuntu / Debian / Oracle Cloud)
-  '/usr/bin/chromium-browser',
-  '/usr/bin/chromium',
+  // Linux (Native Google Chrome / Debian packages first)
   '/usr/bin/google-chrome',
   '/usr/bin/google-chrome-stable',
-  '/snap/bin/chromium',
+  '/usr/bin/chromium-browser',
+  '/usr/bin/chromium',
   // Windows
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
   'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
@@ -35,15 +34,34 @@ function findExecutablePath() {
   return undefined;
 }
 
-/**
- * Fetches rendered HTML using headless Stealth Chromium
- * @param {string} url 
- * @returns {Promise<string>}
- */
-export async function fetchHtmlWithBrowser(url) {
+// ---------------------------------------------------------
+// Browser Singleton & Auto-Idle Memory Management
+// ---------------------------------------------------------
+let cachedBrowser = null;
+let idleCloseTimer = null;
+const IDLE_TIMEOUT_MS = 3 * 60 * 1000; // Auto-close browser after 3 minutes of inactivity to save RAM
+
+function resetIdleTimer() {
+  if (idleCloseTimer) clearTimeout(idleCloseTimer);
+  idleCloseTimer = setTimeout(async () => {
+    if (cachedBrowser) {
+      try {
+        await cachedBrowser.close();
+      } catch {}
+      cachedBrowser = null;
+    }
+  }, IDLE_TIMEOUT_MS);
+}
+
+async function getOrCreateBrowser() {
+  resetIdleTimer();
+
+  if (cachedBrowser && cachedBrowser.isConnected()) {
+    return cachedBrowser;
+  }
+
   const executablePath = findExecutablePath();
-  
-  const browser = await puppeteer.launch({
+  cachedBrowser = await puppeteer.launch({
     headless: 'new',
     executablePath,
     pipe: true,
@@ -62,11 +80,26 @@ export async function fetchHtmlWithBrowser(url) {
     ]
   });
 
+  cachedBrowser.on('disconnected', () => {
+    cachedBrowser = null;
+  });
+
+  return cachedBrowser;
+}
+
+/**
+ * Fetches rendered HTML using the warm Singleton Headless Stealth Chromium
+ * @param {string} url 
+ * @returns {Promise<string>}
+ */
+export async function fetchHtmlWithBrowser(url) {
+  const browser = await getOrCreateBrowser();
+  const page = await browser.newPage();
+
   try {
-    const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
     
-    // Block heavy assets (images, stylesheets, fonts, media) to make page load 5x faster and prevent timeouts
+    // Block heavy assets (images, stylesheets, fonts, media) to make page load 5x faster
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const resourceType = req.resourceType();
@@ -85,15 +118,17 @@ export async function fetchHtmlWithBrowser(url) {
       'Accept-Language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7'
     });
 
-    // Navigate and wait for DOM content loaded (30s timeout)
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    // Navigate with domcontentloaded (generous 25s timeout for reliability on cloud network)
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
 
-    // Wait a brief moment for dynamic hydration/scripts
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Minimal delay for hydration scripts
+    await new Promise((resolve) => setTimeout(resolve, 400));
 
     const content = await page.content();
     return content;
   } finally {
-    await browser.close().catch(() => {});
+    // Only close the lightweight tab, keep the browser engine warm!
+    await page.close().catch(() => {});
+    resetIdleTimer();
   }
 }
