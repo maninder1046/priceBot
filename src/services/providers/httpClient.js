@@ -77,6 +77,7 @@ export async function secureFetchHtml(url, options = {}) {
   const controller = new AbortController();
   const timeoutHandle = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
+  try {
     const isMyntra = validation.store === 'Myntra';
     const headers = {
       ...getStealthHeaders({ ...options, isMobile: isMyntra || options.isMobile }),
