@@ -15,11 +15,16 @@ export class FlipkartProvider extends BaseProvider {
                      $('div.Nx9bqj.CxhGGd').text() ||
                      $('div._30jeq3').first().text();
 
-    const isSoldOut = $('div._16FRp0').text().toLowerCase().includes('sold out');
+    const pageText = $.text().toLowerCase();
+    const isSoldOut = $('div._16FRp0').length > 0 ||
+                      $('div:contains("Sold Out")').length > 0 ||
+                      $('div:contains("Currently Out of Stock")').length > 0 ||
+                      pageText.includes('this item is currently out of stock') ||
+                      pageText.includes('sold out');
 
     return {
       name,
-      price: parsePriceToInteger(rawPrice),
+      price: !isSoldOut ? parsePriceToInteger(rawPrice) : 0,
       available: !isSoldOut
     };
   }

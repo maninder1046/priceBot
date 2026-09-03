@@ -24,15 +24,22 @@ export function extractFromSchema(data) {
     const title = data.name || data.title;
     let price = null;
 
+    let isAvailable = true;
     if (data.offers) {
       const offers = Array.isArray(data.offers) ? data.offers[0] : data.offers;
       price = parsePriceToInteger(offers.price || offers.lowPrice || offers.highPrice);
+      
+      const avail = (offers.availability || '').toString().toLowerCase();
+      if (avail.includes('outofstock') || avail.includes('soldout') || avail.includes('discontinued')) {
+        isAvailable = false;
+      }
     }
 
     if (title || price) {
       return {
         title: cleanTitle(title),
-        price
+        price: isAvailable ? price : 0,
+        available: isAvailable
       };
     }
   }

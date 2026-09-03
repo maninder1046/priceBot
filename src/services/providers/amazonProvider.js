@@ -15,11 +15,14 @@ export class AmazonProvider extends BaseProvider {
                      $('#priceblock_ourprice').text() ||
                      $('#priceblock_dealprice').text();
 
-    const isOutOfStock = $('#availability').text().toLowerCase().includes('currently unavailable');
+    const availText = $('#availability').text().toLowerCase();
+    const isOutOfStock = availText.includes('currently unavailable') ||
+                         availText.includes('out of stock') ||
+                         $('input#add-to-cart-button').length === 0 && availText.includes('unavailable');
 
     return {
       name,
-      price: parsePriceToInteger(rawPrice),
+      price: !isOutOfStock ? parsePriceToInteger(rawPrice) : 0,
       available: !isOutOfStock
     };
   }

@@ -48,6 +48,7 @@ export class BaseProvider {
     // 1. Try JSON-LD Schema.org extraction first (Standard E-Commerce Product Schema)
     let schemaName = '';
     let schemaPrice = null;
+    let schemaAvailable = true;
 
     $('script[type="application/ld+json"]').each((_, el) => {
       try {
@@ -57,14 +58,19 @@ export class BaseProvider {
         const res = extractFromSchema(parsed);
         if (res) {
           if (!schemaName && res.title) schemaName = res.title;
-          if (!schemaPrice && res.price) schemaPrice = res.price;
+          if (!schemaPrice && res.price !== undefined) schemaPrice = res.price;
+          if (res.available === false) schemaAvailable = false;
         }
       } catch {
         // ignore parse error
       }
     });
 
-    if (schemaName && schemaPrice) {
+    // 2. Delegate to store-specific parser (for Myntra/Flipkart script/SSR states & DOM selectors)
+    const specific = this.extractStoreSpecific($, html);
+    const isStoreAvailable = specific?.available !== false && schemaAvailable !== false;
+
+    if (schemaName && schemaPrice && isStoreAvailable) {
       return {
         name: cleanTitle(schemaName),
         price: schemaPrice,
@@ -73,23 +79,19 @@ export class BaseProvider {
       };
     }
 
-    // 2. Delegate to store-specific parser (for Myntra/Flipkart script/SSR states & DOM selectors)
-    const specific = this.extractStoreSpecific($, html);
-    if (specific && specific.price && specific.name) {
+    if (specific && specific.name && specific.price && isStoreAvailable) {
       return {
         name: cleanTitle(specific.name),
         price: specific.price,
         currency: 'INR',
-        available: specific.available !== undefined ? specific.available : true
+        available: true
       };
     }
 
     const finalName = cleanTitle(specific?.name || schemaName || $('meta[property="og:title"]').attr('content') || $('title').text());
-    const finalPrice = specific?.price || schemaPrice || parsePriceToInteger($('meta[property="og:price:amount"]').attr('content'));
+    const finalPrice = isStoreAvailable ? (specific?.price || schemaPrice || parsePriceToInteger($('meta[property="og:price:amount"]').attr('content'))) : 0;
 
-    const isAvailable = specific?.available !== false && (finalPrice !== null && finalPrice > 0);
-
-    if (!finalPrice && !isAvailable) {
+    if (!isStoreAvailable || (!finalPrice && finalName)) {
       // Product detected but currently Out of Stock
       return {
         name: finalName || `${this.name} Product`,
@@ -107,7 +109,7 @@ export class BaseProvider {
       name: finalName || `${this.name} Product`,
       price: finalPrice,
       currency: 'INR',
-      available: isAvailable
+      available: true
     };
   }
 
