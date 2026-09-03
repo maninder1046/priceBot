@@ -7,9 +7,6 @@ import { formatCurrency } from '../../utils/currency/currencyFormatter.js';
 import { escapeHtml } from '../../utils/sanitizers/textSanitizer.js';
 import { config } from '../../config/env.js';
 
-// Map of active user fetch requests -> cancellation trigger
-export const activeFetchAbortMap = new Map();
-
 /**
  * Extracts candidate URLs from message text or Telegram entities.
  * @param {import('grammy').Context} ctx 
@@ -109,33 +106,19 @@ export async function handleTextMessage(ctx) {
     reply_markup: cancelKeyboard
   });
 
-  // Setup instantaneous cancellation promise
-  let cancelReject = null;
-  const cancellationPromise = new Promise((_, reject) => {
-    cancelReject = () => reject(new Error('FETCH_CANCELLED_BY_USER'));
-  });
-  activeFetchAbortMap.set(userId, cancelReject);
-
   try {
-    // Generous 60-second scraper timeout so headless browser has full time to complete
     const scrapePromise = scrapeProduct(validation.url, validation.store);
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Scraping timed out after 60 seconds')), 60000)
+      setTimeout(() => reject(new Error('The store took too long to respond. Please try sending the link again in a few moments.')), 45000)
     );
 
-    const scrapeResult = await Promise.race([scrapePromise, timeoutPromise, cancellationPromise]);
+    const scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);
 
-    // If cancelled, stop immediately and do not overwrite the cancellation card
-    if (!activeFetchAbortMap.has(userId)) {
-      return;
-    }
-    activeFetchAbortMap.delete(userId);
-
-    if (!scrapeResult.success) {
-      console.error(`[Scraper Error] Failed scraping ${validation.store} URL:`, validation.url, scrapeResult.error);
+    if (!scrapeResult || !scrapeResult.success) {
+      console.error(`[Scraper Error] Failed scraping ${validation.store} URL:`, validation.url, scrapeResult?.error);
       
       let friendlyError = 'Please make sure the link points directly to a valid product page.';
-      if (scrapeResult.error?.toLowerCase().includes('timed out') || scrapeResult.error?.toLowerCase().includes('timeout')) {
+      if (scrapeResult?.error?.toLowerCase().includes('timed out') || scrapeResult?.error?.toLowerCase().includes('timeout')) {
         friendlyError = 'The store took too long to respond. Please try sending the link again in a few moments.';
       }
 
@@ -207,16 +190,11 @@ export async function handleTextMessage(ctx) {
     );
 
   } catch (error) {
-    if (error.message === 'FETCH_CANCELLED_BY_USER') {
-      activeFetchAbortMap.delete(userId);
-      return;
-    }
-    activeFetchAbortMap.delete(userId);
     console.error('Error handling product URL:', error);
     await ctx.api.editMessageText(
       ctx.chat.id,
       statusMessage.message_id,
-      `❌ <b>An error occurred while fetching the product.</b>\nPlease try again in a moment.`,
+      `❌ <b>Could not fetch product details.</b>\n\n${error.message || 'Please try again in a moment.'}`,
       { parse_mode: 'HTML' }
     );
   }
