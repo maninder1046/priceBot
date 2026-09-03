@@ -46,7 +46,7 @@ export async function fetchHtmlWithBrowser(url) {
   const browser = await puppeteer.launch({
     headless: 'new',
     executablePath,
-    pipe: false,
+    pipe: true,
     protocolTimeout: 60000,
     args: [
       '--no-sandbox',
