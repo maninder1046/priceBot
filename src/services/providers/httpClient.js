@@ -85,10 +85,12 @@ export async function secureFetchHtml(url, options = {}) {
       headers['Referer'] = 'https://www.flipkart.com/';
       headers['Origin'] = 'https://www.flipkart.com';
       headers['Sec-Fetch-Site'] = 'same-origin';
+      headers['Cookie'] = 'dvc_d=mobile;';
     } else if (validation.store === 'Myntra') {
       headers['Referer'] = 'https://www.myntra.com/';
       headers['Origin'] = 'https://www.myntra.com';
       headers['Sec-Fetch-Site'] = 'same-origin';
+      headers['Cookie'] = 'dvc_d=mobile; myx_deviceType=mobile;';
     }
 
     const response = await fetch(targetUrl, {
@@ -131,6 +133,13 @@ export async function secureFetchHtml(url, options = {}) {
     }
 
     html += decoder.decode(); // flush buffer
+
+    // Check if store returned a fake 200 "Site Maintenance" or CAPTCHA blocking page
+    const isMaintenanceBlock = (html.includes('<title>Site Maintenance</title>') || html.includes('Flipkart reCAPTCHA')) && html.length < 5000;
+    if (isMaintenanceBlock) {
+      throw new Error(`Store returned a bot challenge/maintenance block (HTTP 403 / Challenge)`);
+    }
+
     return html;
 
   } catch (err) {
@@ -140,7 +149,7 @@ export async function secureFetchHtml(url, options = {}) {
     }
 
     // If static request is blocked with 403 Forbidden or bot challenge, fall back to headless Stealth Browser
-    if (err.message.includes('403') || err.message.includes('Forbidden') || err.message.includes('503')) {
+    if (err.message.includes('403') || err.message.includes('Forbidden') || err.message.includes('503') || err.message.includes('challenge')) {
       try {
         const { fetchHtmlWithBrowser } = await import('./browserClient.js');
         return await fetchHtmlWithBrowser(targetUrl);
