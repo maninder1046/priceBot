@@ -1,8 +1,5 @@
-import puppeteer from 'puppeteer-extra';
-import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import puppeteer from 'puppeteer-core';
 import fs from 'fs';
-
-puppeteer.use(StealthPlugin());
 
 /**
  * Common Chromium/Chrome executable paths across Linux and Windows
@@ -101,6 +98,12 @@ export async function fetchHtmlWithBrowser(url) {
 
   try {
     await page.setViewport({ width: 1280, height: 800 });
+
+    // Native Stealth Masking (Bypasses bot checks cleanly without fragile plugin hooks)
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      window.chrome = { runtime: {} };
+    });
 
     // Set realistic headers
     await page.setUserAgent(
