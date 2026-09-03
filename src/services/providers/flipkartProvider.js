@@ -42,29 +42,54 @@ export class FlipkartProvider extends BaseProvider {
         const rawJson = JSON.stringify(data);
         const slots = data?.RESPONSE?.slots || [];
 
-        // 1. Extract Title
+        // 1. Extract exact product title from SEO or pageData
         let name = data?.RESPONSE?.pageData?.seoData?.seo?.title ||
                    data?.RESPONSE?.pageData?.seoData?.seo?.ogTitle ||
                    data?.RESPONSE?.pageData?.pageTitle || '';
         
-        // Clean up common suffix
         if (name.includes(' Price in India')) {
           name = name.split(' Price in India')[0].trim();
         } else if (name.includes(' - Buy ')) {
           name = name.split(' - Buy ')[0].trim();
         }
 
-        // 2. Extract Price (First valid ₹ match in slots)
+        // 2. Extract exact main product price by inspecting slots
         let price = 0;
-        const priceMatches = [...rawJson.matchAll(/\"text\"\s*:\s*\"₹\s*([0-9,]+)\"/g)];
-        if (priceMatches.length > 0) {
-          price = parsePriceToInteger(priceMatches[0][1]);
+        let isOutOfStock = false;
+
+        // Traverse slots to find the primary product summary widget
+        for (const slot of slots) {
+          const wData = slot?.widget?.data || {};
+          
+          // Case A: Standard PRODUCT_PAGE_SUMMARY or ATLAS widget with pricing
+          if (wData.pricing?.value?.finalPrice?.value) {
+            price = wData.pricing.value.finalPrice.value;
+          } else if (wData.price?.value?.finalPrice?.value) {
+            price = wData.price.value.finalPrice.value;
+          } else if (wData.productSummary?.value?.pricing?.displayPrice) {
+            price = wData.productSummary.value.pricing.displayPrice;
+          }
+
+          if (price > 0) break;
+        }
+
+        // Fallback to top-level price if not found in structured widgets
+        if (!price) {
+          // Look for price in the first 3 slots only (main product card, ignoring bottom carousels)
+          for (let i = 0; i < Math.min(slots.length, 4); i++) {
+            const slotStr = JSON.stringify(slots[i]);
+            const match = slotStr.match(/\"text\"\s*:\s*\"₹\s*([0-9,]+)\"/);
+            if (match) {
+              price = parsePriceToInteger(match[1]);
+              if (price > 0) break;
+            }
+          }
         }
 
         // 3. Extract Stock Status
-        const isOutOfStock = rawJson.toLowerCase().includes('out of stock') || 
-                             rawJson.toLowerCase().includes('currently out of stock') ||
-                             rawJson.toLowerCase().includes('sold out');
+        isOutOfStock = rawJson.toLowerCase().includes('out of stock') || 
+                       rawJson.toLowerCase().includes('currently out of stock') ||
+                       rawJson.toLowerCase().includes('sold out');
 
         if (price > 0 || isOutOfStock || name) {
           console.log(`⚡ [Pipeline: Flipkart Rome API] Successfully fetched "${name}" (₹${price}) via 2.rome.api JSON gateway in 0.2s (0 credits)`);
