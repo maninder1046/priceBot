@@ -102,7 +102,13 @@ export async function handleTextMessage(ctx) {
   });
 
   try {
-    const scrapeResult = await scrapeProduct(validation.url, validation.store);
+    // Hard 10-second scraper timeout so user is never blocked or frozen
+    const scrapePromise = scrapeProduct(validation.url, validation.store);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Scraping timed out after 10 seconds')), 10000)
+    );
+
+    const scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);
 
     if (!scrapeResult.success) {
       console.error(`[Scraper Error] Failed scraping ${validation.store} URL:`, validation.url, scrapeResult.error);
