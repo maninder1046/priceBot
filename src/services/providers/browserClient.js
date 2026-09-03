@@ -39,7 +39,7 @@ function findExecutablePath() {
 // ---------------------------------------------------------
 let cachedBrowser = null;
 let idleCloseTimer = null;
-const IDLE_TIMEOUT_MS = 3 * 60 * 1000; // Auto-close browser after 3 minutes of inactivity to save RAM
+const IDLE_TIMEOUT_MS = 45 * 1000; // Auto-close browser after 45 seconds of idle to free RAM immediately
 
 export async function closeBrowser() {
   if (idleCloseTimer) clearTimeout(idleCloseTimer);
@@ -83,7 +83,13 @@ async function getOrCreateBrowser() {
       '--disable-extensions',
       '--disable-software-rasterizer',
       '--disable-background-networking',
-      '--disable-default-apps'
+      '--disable-default-apps',
+      '--disable-sync',
+      '--disable-translate',
+      '--metrics-recording-only',
+      '--mute-audio',
+      '--no-default-browser-check',
+      '--js-flags=--max-old-space-size=128'
     ]
   });
 
