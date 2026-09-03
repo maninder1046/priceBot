@@ -46,15 +46,17 @@ export async function fetchHtmlWithBrowser(url) {
   const browser = await puppeteer.launch({
     headless: 'new',
     executablePath,
+    pipe: true,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-gpu',
       '--no-first-run',
-      '--no-zygote',
-      '--single-process',
-      '--disable-extensions'
+      '--disable-extensions',
+      '--disable-software-rasterizer',
+      '--disable-background-networking',
+      '--disable-default-apps'
     ]
   });
 
