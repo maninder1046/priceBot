@@ -62,6 +62,17 @@ export async function fetchHtmlWithBrowser(url) {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
     
+    // Block heavy assets (images, stylesheets, fonts, media) to make page load 5x faster and prevent timeouts
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const resourceType = req.resourceType();
+      if (['image', 'media', 'font', 'stylesheet'].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     // Set realistic headers & cookies
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
@@ -70,8 +81,8 @@ export async function fetchHtmlWithBrowser(url) {
       'Accept-Language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7'
     });
 
-    // Navigate and wait for DOM content loaded
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+    // Navigate and wait for DOM content loaded (30s timeout)
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
     // Wait a brief moment for dynamic hydration/scripts
     await new Promise((resolve) => setTimeout(resolve, 1500));
