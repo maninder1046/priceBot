@@ -48,7 +48,7 @@ export async function checkProductPrices(bot, customPriceFetcher = null, store =
       {
         maxRetries: config.schedulerMaxRetries,
         baseDelayMs: 1000,
-        timeoutMs: 30000
+        timeoutMs: 60000
       }
     );
 
