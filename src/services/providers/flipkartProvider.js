@@ -14,7 +14,10 @@ export class FlipkartProvider extends BaseProvider {
     const { resolveShortUrl } = await import('./httpClient.js');
     const resolvedUrl = await resolveShortUrl(url);
     const parsed = new URL(resolvedUrl);
-    const pageUri = parsed.pathname + parsed.search;
+    let pageUri = parsed.pathname + parsed.search;
+    if (pageUri.startsWith('/dl/')) {
+      pageUri = pageUri.replace('/dl/', '/');
+    }
 
     try {
       const res = await fetch('https://2.rome.api.flipkart.com/api/4/page/fetch?cacheFirst=false', {
