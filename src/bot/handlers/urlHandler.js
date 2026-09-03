@@ -102,10 +102,10 @@ export async function handleTextMessage(ctx) {
   });
 
   try {
-    // Hard 10-second scraper timeout so user is never blocked or frozen
+    // 25-second scraper timeout to allow headless browser rendering on cloud servers
     const scrapePromise = scrapeProduct(validation.url, validation.store);
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Scraping timed out after 10 seconds')), 10000)
+      setTimeout(() => reject(new Error('Scraping timed out after 25 seconds')), 25000)
     );
 
     const scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);
