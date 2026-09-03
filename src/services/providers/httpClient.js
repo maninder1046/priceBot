@@ -138,6 +138,18 @@ export async function secureFetchHtml(url, options = {}) {
     if (err.name === 'AbortError') {
       throw new Error(`Request timed out after ${REQUEST_TIMEOUT_MS / 1000}s while contacting store`);
     }
+
+    // If static request is blocked with 403 Forbidden or bot challenge, fall back to headless Stealth Browser
+    if (err.message.includes('403') || err.message.includes('Forbidden') || err.message.includes('503')) {
+      try {
+        const { fetchHtmlWithBrowser } = await import('./browserClient.js');
+        return await fetchHtmlWithBrowser(targetUrl);
+      } catch (browserErr) {
+        // If browser also fails or is unavailable, throw original helpful error
+        throw new Error(`${err.message} (Browser fallback: ${browserErr.message})`);
+      }
+    }
+
     throw err;
   }
 }
