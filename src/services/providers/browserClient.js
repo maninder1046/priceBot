@@ -111,19 +111,8 @@ export async function fetchHtmlWithBrowser(url) {
 
   try {
     await page.setViewport({ width: 1280, height: 800 });
-    
-    // Block heavy media and fonts (do NOT abort stylesheets or scripts as it causes Chromium lifecycle to hang)
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-      const resourceType = req.resourceType();
-      if (['image', 'media', 'font'].includes(resourceType)) {
-        req.abort();
-      } else {
-        req.continue();
-      }
-    });
 
-    // Set realistic headers & cookies
+    // Set realistic headers
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
     );
