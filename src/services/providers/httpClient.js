@@ -77,9 +77,9 @@ export async function secureFetchHtml(url, options = {}) {
   const controller = new AbortController();
   const timeoutHandle = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  try {
+    const isMyntra = validation.store === 'Myntra';
     const headers = {
-      ...getStealthHeaders(options),
+      ...getStealthHeaders({ ...options, isMobile: isMyntra || options.isMobile }),
       ...options.headers
     };
 
@@ -97,6 +97,7 @@ export async function secureFetchHtml(url, options = {}) {
       headers['Origin'] = 'https://www.myntra.com';
       headers['Sec-Fetch-Site'] = 'same-origin';
       headers['Cookie'] = 'dvc_d=mobile; myx_deviceType=mobile;';
+      headers['User-Agent'] = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1';
     }
 
     const response = await fetch(targetUrl, {

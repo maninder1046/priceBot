@@ -88,7 +88,10 @@ export class BaseProvider {
       };
     }
 
-    const finalName = cleanTitle(specific?.name || schemaName || $('meta[property="og:title"]').attr('content') || $('title').text());
+    const rawTitle = cleanTitle(specific?.name || schemaName || $('meta[property="og:title"]').attr('content') || $('title').text());
+    const isMaintenanceTitle = rawTitle.toLowerCase().includes('site maintenance') || rawTitle.toLowerCase().includes('access denied');
+    const finalName = isMaintenanceTitle ? '' : rawTitle;
+
     const finalPrice = isStoreAvailable ? (specific?.price || schemaPrice || parsePriceToInteger($('meta[property="og:price:amount"]').attr('content'))) : 0;
 
     if (!isStoreAvailable || (!finalPrice && finalName)) {
