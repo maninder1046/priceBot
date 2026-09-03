@@ -56,7 +56,9 @@ function resetIdleTimer() {
 async function getOrCreateBrowser() {
   resetIdleTimer();
 
-  if (cachedBrowser && cachedBrowser.isConnected()) {
+  const isAlive = cachedBrowser && (typeof cachedBrowser.connected === 'boolean' ? cachedBrowser.connected : true) && (typeof cachedBrowser.isConnected === 'function' ? cachedBrowser.isConnected() : true);
+
+  if (isAlive) {
     return cachedBrowser;
   }
 
@@ -126,6 +128,14 @@ export async function fetchHtmlWithBrowser(url) {
 
     const content = await page.content();
     return content;
+  } catch (err) {
+    if (err.message.includes('Protocol error') || err.message.includes('Target.setDiscoverTargets') || err.message.includes('Session closed')) {
+      if (cachedBrowser) {
+        try { await cachedBrowser.close(); } catch {}
+        cachedBrowser = null;
+      }
+    }
+    throw err;
   } finally {
     // Only close the lightweight tab, keep the browser engine warm!
     await page.close().catch(() => {});
