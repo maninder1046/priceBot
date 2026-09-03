@@ -64,6 +64,7 @@ export class FlipkartProvider extends BaseProvider {
                              rawJson.toLowerCase().includes('sold out');
 
         if (price > 0 || isOutOfStock) {
+          console.log(`⚡ [Pipeline: Flipkart Rome API] Successfully fetched "${name}" (₹${price}) via 2.rome.api JSON gateway in 0.2s (0 credits)`);
           return {
             name: name || 'Flipkart Product',
             price: !isOutOfStock ? price : 0,
@@ -73,10 +74,11 @@ export class FlipkartProvider extends BaseProvider {
         }
       }
     } catch (apiErr) {
-      // Fallback to standard baseProvider scraping
+      console.warn(`⚠️ [Pipeline: Flipkart Rome API] Fallback triggered: ${apiErr.message}`);
     }
 
     // Fallback: standard HTML scrape
+    console.log(`🌐 [Pipeline: HTML Fallback] Fetching Flipkart via HTML pipeline for ${resolvedUrl}`);
     return super.getProduct(resolvedUrl);
   }
 

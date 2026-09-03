@@ -87,18 +87,21 @@ export async function secureFetchHtml(url, options = {}) {
     const { config } = await import('../../config/env.js');
     if (config.scraperApiKey) {
       try {
+        console.log(`🌐 [Pipeline: ScraperAPI Proxy] Routing Flipkart HTML request via ScraperAPI for ${targetUrl}`);
         const proxyUrl = `https://api.scraperapi.com?api_key=${config.scraperApiKey}&url=${encodeURIComponent(targetUrl)}&keep_headers=true`;
         const res = await fetch(proxyUrl, { method: 'GET', signal: AbortSignal.timeout(15000) });
         if (res.ok) {
           const html = await res.text();
           if (html.length > 2000) {
+            console.log(`✅ [Pipeline: ScraperAPI Proxy] Received ${html.length} bytes HTML via ScraperAPI`);
             return html;
           }
         }
       } catch (proxyErr) {
-        console.warn(`[Proxy Fallback] ScraperAPI request failed (${proxyErr.message}), falling back to browser...`);
+        console.warn(`⚠️ [Pipeline: ScraperAPI Proxy] Request failed (${proxyErr.message}), falling back to browser...`);
       }
     }
+    console.log(`🖥️ [Pipeline: Headless Chromium] Launching browser engine for ${targetUrl}`);
     const { fetchHtmlWithBrowser } = await import('./browserClient.js');
     return await fetchHtmlWithBrowser(targetUrl);
   }
