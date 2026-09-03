@@ -127,10 +127,10 @@ export async function handleTextMessage(ctx) {
       return;
     }
 
-    // Save tracking record in trackerStore
+    // Save tracking record in trackerStore with unshortened canonical URL
     const storeResult = trackerStore.addTracker({
       userId: userId,
-      productUrl: validation.url,
+      productUrl: scrapeResult.productUrl || validation.url,
       platform: validation.store,
       title: scrapeResult.title,
       initialPrice: scrapeResult.price

@@ -20,7 +20,8 @@ export async function scrapeProduct(url, platform) {
       success: true,
       title: product.name,
       price: product.price,
-      available: product.available
+      available: product.available,
+      productUrl: product.productUrl || url
     };
   } catch (err) {
     return {

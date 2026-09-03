@@ -69,7 +69,8 @@ export class FlipkartProvider extends BaseProvider {
             name: name || 'Flipkart Product',
             price: !isOutOfStock ? price : 0,
             currency: 'INR',
-            available: !isOutOfStock
+            available: !isOutOfStock,
+            productUrl: resolvedUrl
           };
         }
       }
