@@ -97,14 +97,15 @@ export async function handleTextMessage(ctx) {
   }
 
   // Temporary status message while scraping
-  const statusMessage = await ctx.reply(`🔍 <i>Fetching product details from ${validation.store}...</i>`, {
+  const statusMessage = await ctx.reply(`🔍 <i>Fetching product details from ${validation.store}...</i>\n⏳ <i>Please wait, this may take a few moments on some stores.</i>`, {
     parse_mode: 'HTML'
   });
 
   try {
+    // 90-second (1 min 30 sec) scraper timeout
     const scrapePromise = scrapeProduct(validation.url, validation.store);
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('The store took too long to respond. Please try sending the link again in a few moments.')), 45000)
+      setTimeout(() => reject(new Error('The store took too long to respond. Please try sending the link again in a few moments.')), 90000)
     );
 
     const scrapeResult = await Promise.race([scrapePromise, timeoutPromise]);

@@ -131,8 +131,8 @@ export async function fetchHtmlWithBrowser(url) {
       'Accept-Language': 'en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7'
     });
 
-    // Navigate with domcontentloaded (generous 25s timeout for reliability on cloud network)
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+    // Navigate with domcontentloaded (generous 60s timeout for cloud networks)
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     // Minimal delay for hydration scripts
     await new Promise((resolve) => setTimeout(resolve, 400));
