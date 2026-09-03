@@ -47,12 +47,16 @@ export async function resolveShortUrl(url) {
     if (res.status === 403) {
       const { config } = await import('../../config/env.js');
       if (config.scraperApiKey) {
-        const proxyResolveUrl = `https://api.scraperapi.com?api_key=${config.scraperApiKey}&url=${encodeURIComponent(url)}&follow_redirect=false`;
-        const proxyRes = await fetch(proxyResolveUrl, { method: 'GET', redirect: 'manual', signal: AbortSignal.timeout(8000) });
-        const proxyLocation = proxyRes.headers.get('location') || proxyRes.headers.get('sa-final-url');
-        if (proxyLocation) {
-          const resolved = new URL(proxyLocation, url).toString();
-          const validation = validateProductUrl(resolved);
+        const proxyResolveUrl = `https://api.scraperapi.com?api_key=${config.scraperApiKey}&url=${encodeURIComponent(url)}`;
+        const proxyRes = await fetch(proxyResolveUrl, { 
+          method: 'GET',
+          headers: { 'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36' },
+          signal: AbortSignal.timeout(10000) 
+        });
+        
+        const finalUrl = proxyRes.headers.get('sa-final-url') || proxyRes.url;
+        if (finalUrl && finalUrl !== url && !finalUrl.includes('api.scraperapi.com')) {
+          const validation = validateProductUrl(finalUrl);
           if (validation.isValid) {
             return validation.url;
           }
