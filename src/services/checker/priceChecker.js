@@ -52,12 +52,14 @@ export async function checkProductPrices(bot, customPriceFetcher = null, store =
       }
     );
 
-    if (!currentPrice || isNaN(currentPrice) || currentPrice <= 0) {
+    if (currentPrice === undefined || currentPrice === null || isNaN(currentPrice) || currentPrice < 0) {
       throw new Error(`Invalid price returned for product ${product.id}`);
     }
 
-    // 2. Update last_price in database
-    store.updateProductPrice(product.id, currentPrice);
+    // 2. Update last_price in database if positive price
+    if (currentPrice > 0) {
+      store.updateProductPrice(product.id, currentPrice);
+    }
 
     // 3. Fetch all subscribers for this product
     const subscribers = store.getProductSubscribers(product.id);
