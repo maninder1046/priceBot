@@ -57,28 +57,43 @@ export class FlipkartProvider extends BaseProvider {
         let price = 0;
         let isOutOfStock = false;
 
-        // Traverse slots to find the primary product summary widget
+        // Traverse slots to find the primary product summary widget (skipping Ads and Carousels)
         for (const slot of slots) {
+          const raw = JSON.stringify(slot);
+          
+          // Skip Ads and Carousels
+          if (raw.includes('\"text\":\"AD\"') || raw.includes('Similar Products') || raw.includes('Compare with these')) {
+            continue;
+          }
+
           const wData = slot?.widget?.data || {};
           
-          // Case A: Standard PRODUCT_PAGE_SUMMARY or ATLAS widget with pricing
+          // Case A: Structured pricing keys
           if (wData.pricing?.value?.finalPrice?.value) {
             price = wData.pricing.value.finalPrice.value;
           } else if (wData.price?.value?.finalPrice?.value) {
             price = wData.price.value.finalPrice.value;
           } else if (wData.productSummary?.value?.pricing?.displayPrice) {
             price = wData.productSummary.value.pricing.displayPrice;
+          } else if (raw.includes('applied for you') || raw.includes('Special price') || raw.includes('₹0 off') || raw.includes('finalPrice')) {
+            // Case B: Offer widget containing the active deal price
+            const match = raw.match(/\"text\"\s*:\s*\"₹\s*([0-9,]+)\"/);
+            if (match) {
+              price = parsePriceToInteger(match[1]);
+            }
           }
 
           if (price > 0) break;
         }
 
-        // Fallback to top-level price if not found in structured widgets
+        // Fallback: If not found in primary offer slot, check first valid non-ad slot
         if (!price) {
-          // Look for price in the first 3 slots only (main product card, ignoring bottom carousels)
-          for (let i = 0; i < Math.min(slots.length, 4); i++) {
-            const slotStr = JSON.stringify(slots[i]);
-            const match = slotStr.match(/\"text\"\s*:\s*\"₹\s*([0-9,]+)\"/);
+          for (const slot of slots) {
+            const raw = JSON.stringify(slot);
+            if (raw.includes('\"text\":\"AD\"') || raw.includes('Similar Products') || raw.includes('Compare with these')) {
+              continue;
+            }
+            const match = raw.match(/\"text\"\s*:\s*\"₹\s*([0-9,]+)\"/);
             if (match) {
               price = parsePriceToInteger(match[1]);
               if (price > 0) break;
