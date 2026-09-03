@@ -70,7 +70,8 @@ export async function secureFetchHtml(url, options = {}) {
     const { config } = await import('../../config/env.js');
     if (config.scraperApiKey) {
       try {
-        const proxyUrl = `https://api.scraperapi.com?api_key=${config.scraperApiKey}&url=${encodeURIComponent(targetUrl)}&country_code=in`;
+        // Standard HTTP proxy: 1 request = exactly 1 API credit (render=false, standard IP)
+        const proxyUrl = `https://api.scraperapi.com?api_key=${config.scraperApiKey}&url=${encodeURIComponent(targetUrl)}&keep_headers=true`;
         const res = await fetch(proxyUrl, { method: 'GET', signal: AbortSignal.timeout(15000) });
         if (res.ok) {
           const html = await res.text();
